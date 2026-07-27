@@ -14,6 +14,7 @@ import {getSiteTimezone} from '@tryghost/admin-x-framework/utils/get-site-timezo
 import {useBrowseNewsletters} from '@tryghost/admin-x-framework/api/newsletters';
 import {useBrowseOffers} from '@tryghost/admin-x-framework/api/offers';
 import {useEmailPostValueSource, useLabelValueSource, usePostResourceValueSource, useTierValueSource} from '@/shared/filter-sources';
+import {useFeatureFlag} from '@/hooks/use-feature-flag';
 import type {MemberView} from '@/members/hooks/use-member-views';
 
 interface MembersFiltersProps {
@@ -93,6 +94,7 @@ const MembersFilters: React.FC<MembersFiltersProps> = ({
     const emailValueSource = useEmailPostValueSource();
     const labelValueSource = useLabelValueSource();
     const {valueSource: tierValueSource, hasMultipleTiers} = useTierValueSource();
+    const customFieldsEnabled = useFeatureFlag('membersCustomFields');
 
     const filterFields = useMemberFilterFields({
         newsletters,
@@ -109,6 +111,7 @@ const MembersFilters: React.FC<MembersFiltersProps> = ({
         membersTrackSources,
         emailTrackOpens,
         emailTrackClicks,
+        customFieldsEnabled,
         siteTimezone
     });
 

@@ -26,6 +26,7 @@ interface ToSearchParamsOptions {
     search: string;
     timezone: string;
     fields: MemberFields;
+    customFieldsEnabled: boolean;
 }
 
 /**
@@ -43,13 +44,18 @@ export function shouldDelayMembersDateFilterHydration(
     return Boolean(filterParam) && isLoadingDependencies && !hasResolvedDependencies && hasTimezoneSensitiveMemberFilter(filterParam);
 }
 
-function getEnabledFilters(filters: Filter[], fields: MemberFields): Filter[] {
-    return filters.filter(predicate => isPredicateEnabled(predicate, fields));
+// A custom-field predicate only round-trips when the flag is on — otherwise the
+// backend has no relation to resolve it against and rejects the whole request. So
+// when the flag is off we treat it like any other unrecognised predicate and drop
+// it here, before it can reach the URL or the API.
+function getEnabledFilters(filters: Filter[], fields: MemberFields, customFieldsEnabled: boolean): Filter[] {
+    return filters.filter(predicate => isPredicateEnabled(predicate, fields)
+        && (customFieldsEnabled || predicate.field !== 'custom_field'));
 }
 
-function toSearchParams({baseSearchParams, filters, search, timezone, fields}: ToSearchParamsOptions): URLSearchParams {
+function toSearchParams({baseSearchParams, filters, search, timezone, fields, customFieldsEnabled}: ToSearchParamsOptions): URLSearchParams {
     const params = new URLSearchParams(baseSearchParams);
-    const filter = serializeMemberFilters(getEnabledFilters(filters, fields), timezone);
+    const filter = serializeMemberFilters(getEnabledFilters(filters, fields, customFieldsEnabled), timezone);
 
     params.delete('filter');
     params.delete('search');
@@ -65,7 +71,7 @@ function toSearchParams({baseSearchParams, filters, search, timezone, fields}: T
     return params;
 }
 
-export function useMembersFilterState(timezone: string): UseMembersFilterStateReturn {
+export function useMembersFilterState(timezone: string, customFieldsEnabled: boolean = false): UseMembersFilterStateReturn {
     const fields = useMemo(() => getMemberFields(), []);
     const [searchParams, setSearchParams] = useSearchParams();
     const lastWrittenQueryRef = useRef<string | null>(null);
@@ -73,8 +79,8 @@ export function useMembersFilterState(timezone: string): UseMembersFilterStateRe
     const currentQuery = useMemo(() => searchParams.toString(), [searchParams]);
 
     const parsedFilters = useMemo(() => {
-        return getEnabledFilters(parseMemberFilter(filterParam, timezone), fields);
-    }, [filterParam, timezone, fields]);
+        return getEnabledFilters(parseMemberFilter(filterParam, timezone), fields, customFieldsEnabled);
+    }, [filterParam, timezone, fields, customFieldsEnabled]);
     const [filters, setDraftFilters] = useState<Filter[]>(parsedFilters);
 
     const search = useMemo(() => {
@@ -82,8 +88,8 @@ export function useMembersFilterState(timezone: string): UseMembersFilterStateRe
     }, [searchParams]);
 
     const nql = useMemo(() => {
-        return serializeMemberFilters(getEnabledFilters(filters, fields), timezone);
-    }, [filters, timezone, fields]);
+        return serializeMemberFilters(getEnabledFilters(filters, fields, customFieldsEnabled), timezone);
+    }, [filters, timezone, fields, customFieldsEnabled]);
 
     useEffect(() => {
         if (currentQuery !== lastWrittenQueryRef.current) {
@@ -102,7 +108,8 @@ export function useMembersFilterState(timezone: string): UseMembersFilterStateRe
             filters,
             search,
             timezone,
-            fields
+            fields,
+            customFieldsEnabled
         });
         const nextQuery = nextParams.toString();
 
@@ -110,7 +117,7 @@ export function useMembersFilterState(timezone: string): UseMembersFilterStateRe
             lastWrittenQueryRef.current = nextQuery;
             setSearchParams(nextParams, {replace: true});
         }
-    }, [currentQuery, filters, search, searchParams, setSearchParams, timezone, fields]);
+    }, [currentQuery, filters, search, searchParams, setSearchParams, timezone, fields, customFieldsEnabled]);
 
     const setFilters = useCallback((nextFilters: Filter[], setOptions: SetFiltersOptions = {}) => {
         const replace = setOptions.replace ?? true;
@@ -119,13 +126,14 @@ export function useMembersFilterState(timezone: string): UseMembersFilterStateRe
             filters: nextFilters,
             search,
             timezone,
-            fields
+            fields,
+            customFieldsEnabled
         });
 
         setDraftFilters(nextFilters);
         lastWrittenQueryRef.current = nextParams.toString();
         setSearchParams(nextParams, {replace});
-    }, [search, searchParams, setSearchParams, timezone, fields]);
+    }, [search, searchParams, setSearchParams, timezone, fields, customFieldsEnabled]);
 
     const setSearch = useCallback((nextSearch: string, setOptions: SetFiltersOptions = {}) => {
         const replace = setOptions.replace ?? true;
@@ -134,12 +142,13 @@ export function useMembersFilterState(timezone: string): UseMembersFilterStateRe
             filters,
             search: nextSearch,
             timezone,
-            fields
+            fields,
+            customFieldsEnabled
         });
 
         lastWrittenQueryRef.current = nextParams.toString();
         setSearchParams(nextParams, {replace});
-    }, [filters, searchParams, setSearchParams, timezone, fields]);
+    }, [filters, searchParams, setSearchParams, timezone, fields, customFieldsEnabled]);
 
     const clearFilters = useCallback(({replace = true}: SetFiltersOptions = {}) => {
         const nextParams = toSearchParams({
@@ -147,13 +156,14 @@ export function useMembersFilterState(timezone: string): UseMembersFilterStateRe
             filters: [],
             search,
             timezone,
-            fields
+            fields,
+            customFieldsEnabled
         });
 
         setDraftFilters([]);
         lastWrittenQueryRef.current = nextParams.toString();
         setSearchParams(nextParams, {replace});
-    }, [search, searchParams, setSearchParams, timezone, fields]);
+    }, [search, searchParams, setSearchParams, timezone, fields, customFieldsEnabled]);
 
     const clearAll = useCallback(({replace = true}: SetFiltersOptions = {}) => {
         const nextParams = toSearchParams({
@@ -161,13 +171,14 @@ export function useMembersFilterState(timezone: string): UseMembersFilterStateRe
             filters: [],
             search: '',
             timezone,
-            fields
+            fields,
+            customFieldsEnabled
         });
 
         setDraftFilters([]);
         lastWrittenQueryRef.current = nextParams.toString();
         setSearchParams(nextParams, {replace});
-    }, [searchParams, setSearchParams, timezone, fields]);
+    }, [searchParams, setSearchParams, timezone, fields, customFieldsEnabled]);
 
     return {
         filters,

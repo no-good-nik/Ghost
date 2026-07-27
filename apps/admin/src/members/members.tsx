@@ -21,6 +21,7 @@ import {useActiveMemberView, useMemberViews} from './hooks/use-member-views';
 import {useBrowseConfig} from '@tryghost/admin-x-framework/api/config';
 import {useBrowseMembersInfinite} from '@tryghost/admin-x-framework/api/members';
 import {useDebouncedCallback} from 'use-debounce';
+import {useFeatureFlag} from '@/hooks/use-feature-flag';
 import {useLocation, useSearchParams} from 'react-router';
 import {useMultipleActiveSubscriptionsCount} from './hooks/use-multiple-active-subscriptions-count';
 
@@ -44,7 +45,8 @@ const MembersPage: React.FC<MembersPageProps> = ({
     const setHeaderContentRef = useCallback((node: HTMLDivElement | null) => {
         headerRef.current = node?.closest('[data-list-page="header"]') as HTMLDivElement | null;
     }, []);
-    const {filters, nql, search, setFilters, setSearch, hasFilterOrSearch, clearAll} = useMembersFilterState(timezone);
+    const customFieldsEnabled = useFeatureFlag('membersCustomFields');
+    const {filters, nql, search, setFilters, setSearch, hasFilterOrSearch, clearAll} = useMembersFilterState(timezone, customFieldsEnabled);
     const location = useLocation();
     const savedViews = useMemberViews();
     const activeView = useActiveMemberView(savedViews, nql);

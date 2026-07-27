@@ -57,6 +57,44 @@ describe('useMembersFilterState', () => {
         expect(result.current.hasFilterOrSearch).toBe(false);
     });
 
+    it('drops a custom-field filter and rewrites the URL when the flag is off', async () => {
+        const customFieldFilter = "(custom_fields.key:'shipping-address'+custom_fields.value.country:~'GB')";
+        const {result} = renderHook(() => {
+            const state = useMembersFilterState('UTC', false);
+            const [searchParams] = useSearchParams();
+
+            return {
+                ...state,
+                query: searchParams.toString()
+            };
+        }, {
+            wrapper: createWrapper(`/?filter=${encodeURIComponent(customFieldFilter)}`)
+        });
+
+        await waitFor(() => {
+            expect(result.current.query).toBe('');
+        });
+
+        expect(result.current.filters).toEqual([]);
+        expect(result.current.nql).toBeUndefined();
+    });
+
+    it('keeps a custom-field filter when the flag is on', async () => {
+        const customFieldFilter = "(custom_fields.key:'shipping-address'+custom_fields.value.country:~'GB')";
+        const {result} = renderHook(() => {
+            return useMembersFilterState('UTC', true);
+        }, {
+            wrapper: createWrapper(`/?filter=${encodeURIComponent(customFieldFilter)}`)
+        });
+
+        await waitFor(() => {
+            expect(result.current.nql).toContain('custom_fields.key');
+        });
+
+        expect(result.current.filters).toHaveLength(1);
+        expect(result.current.filters[0].field).toBe('custom_field');
+    });
+
     it('parses the multiple active Stripe customers filter into a predicate', async () => {
         const {result} = renderHook(() => {
             const state = useMembersFilterState('UTC');

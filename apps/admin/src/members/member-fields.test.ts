@@ -23,6 +23,7 @@ describe('memberFields', () => {
             'email',
             'label',
             'subscribed',
+            'custom_field',
             'last_seen_at',
             'created_at',
             'signup',
