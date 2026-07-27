@@ -680,7 +680,10 @@ module.exports = {
     },
     members_custom_field_values: {
         id: {type: 'string', maxlength: 24, nullable: false, primary: true},
-        custom_field_id: {type: 'string', maxlength: 24, nullable: false, references: 'members_custom_fields.id', cascadeDelete: true},
+        // The field's immutable `key`, not its internal `id`: the key is the handle
+        // the API, CSV, and segment filters all address a field by, so the value
+        // references it directly and a filter resolves by key with no id lookup.
+        custom_field_key: {type: 'string', maxlength: 191, nullable: false, references: 'members_custom_fields.key', cascadeDelete: true},
         member_id: {type: 'string', maxlength: 24, nullable: false, references: 'members.id', cascadeDelete: true},
         // Exactly one value column is populated per row, chosen by the field
         // type's storage type in @tryghost/custom-field-types, whose byte bound
@@ -690,7 +693,7 @@ module.exports = {
         created_at: {type: 'dateTime', nullable: false},
         updated_at: {type: 'dateTime', nullable: true},
         '@@UNIQUE_CONSTRAINTS@@': [
-            ['member_id', 'custom_field_id']
+            ['member_id', 'custom_field_key']
         ]
     },
     members_stripe_customers: {

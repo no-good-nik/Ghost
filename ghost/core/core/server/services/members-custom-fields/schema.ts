@@ -34,7 +34,7 @@ type CustomFieldRow = z.infer<typeof DbCustomField>;
 // codec's business (see storage.ts), so they're plain nullable strings here.
 export const DbCustomFieldValue = z.object({
     id: z.string(),
-    custom_field_id: z.string(),
+    custom_field_key: z.string(),
     member_id: z.string(),
     value_text: z.string().nullable(),
     value_json: z.string().nullable(),

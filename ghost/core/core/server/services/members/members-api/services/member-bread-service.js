@@ -2,6 +2,8 @@ const errors = require('@tryghost/errors');
 const logging = require('@tryghost/logging');
 const tpl = require('@tryghost/tpl');
 const moment = require('moment');
+const {chainTransformers} = require('@tryghost/mongo-utils');
+const {customFieldsFilterTransformer} = require('../../../members-custom-fields/filter');
 
 const messages = {
     stripeNotConnected: 'Missing Stripe connection.',
@@ -105,6 +107,27 @@ module.exports = class MemberBREADService {
         }
 
         return this.customFieldValues.getValuesForMembers(memberIds);
+    }
+
+    /**
+     * @private
+     * Custom field values live in their own table, joined via the model's
+     * `custom_fields` relation, so a `custom_fields.*` filter is served by
+     * mongo-knex natively. This just turns that relation on (behind the flag) and
+     * chains the transformer that maps the public `key`/`value` filter vocabulary
+     * onto the relation's real columns. A no-op with the flag off, which leaves the
+     * relation unregistered so such a filter is rejected as unknown.
+     * @param {Object} options — browse options, mutated in place.
+     */
+    applyCustomFieldsFilter(options) {
+        if (!options.filter || !this.labsService.isSet('membersCustomFields')) {
+            return;
+        }
+
+        options.enableCustomFieldsFilter = true;
+        options.mongoTransformer = options.mongoTransformer
+            ? chainTransformers(options.mongoTransformer, customFieldsFilterTransformer)
+            : customFieldsFilterTransformer;
     }
 
     /**
@@ -741,6 +764,8 @@ module.exports = class MemberBREADService {
 
         //option param to skip distinct from count query, distinct adds a lot of latency and in this case the result set will always be unique.
         options.useBasicCount = true;
+
+        this.applyCustomFieldsFilter(options);
 
         const page = await this.memberRepository.list({
             ...options,

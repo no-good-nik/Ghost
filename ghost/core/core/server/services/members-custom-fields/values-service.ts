@@ -100,7 +100,7 @@ export class CustomFieldValuesService {
         }
 
         const rows = await this.knex(VALUES_TABLE)
-            .join(FIELDS_TABLE, `${VALUES_TABLE}.custom_field_id`, `${FIELDS_TABLE}.id`)
+            .join(FIELDS_TABLE, `${VALUES_TABLE}.custom_field_key`, `${FIELDS_TABLE}.key`)
             .whereIn(`${VALUES_TABLE}.member_id`, memberIds)
             // Read join, so the status filter is qualified and lives inline — it
             // shares the invariant's vocabulary with queries.ts, not its builder.
@@ -239,7 +239,7 @@ export class CustomFieldValuesService {
 
         const apply = async (trx: Knex) => {
             for (const {field, value} of writes) {
-                const target = {member_id: memberId, custom_field_id: field.id};
+                const target = {member_id: memberId, custom_field_key: field.key};
 
                 if (value === undefined) {
                     await trx(VALUES_TABLE).where(target).del();
@@ -249,9 +249,9 @@ export class CustomFieldValuesService {
                 const valueColumns = storageColumnsFor(field.type, value);
                 await trx(VALUES_TABLE)
                     .insert({id: new ObjectID().toHexString(), ...target, ...valueColumns, created_at: new Date()})
-                    // The unique index on (member_id, custom_field_id) is
+                    // The unique index on (member_id, custom_field_key) is
                     // what makes this an upsert rather than a read-then-write race.
-                    .onConflict(['member_id', 'custom_field_id'])
+                    .onConflict(['member_id', 'custom_field_key'])
                     .merge({...valueColumns, updated_at: new Date()});
             }
         };

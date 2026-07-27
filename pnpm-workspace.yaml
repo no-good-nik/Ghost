@@ -83,8 +83,12 @@ catalog:
   '@tryghost/helpers': 1.1.106
   '@tryghost/limit-service': 1.5.6
   '@tryghost/logging': 5.3.0
-  '@tryghost/mongo-knex': 0.10.1
-  '@tryghost/nql': 0.13.1
+  # TEMPORARY (BER-3792): pre-release of the mongo-knex JSON-path feature
+  # (TryGhost/NQL#192). nql is bumped alongside so its transitive mongo-knex
+  # resolves to the same pre-release. Repoint both to the released versions once
+  # TryGhost/NQL#192 ships.
+  '@tryghost/mongo-knex': 0.10.2-pr192.2
+  '@tryghost/nql': 0.13.2-pr192.2
   '@tryghost/nql-lang': 0.6.6
   '@tryghost/string': 0.3.5
   '@tryghost/timezone-data': 1.0.0
@@ -194,6 +198,13 @@ catalogs:
     eslint-plugin-tailwindcss: 3.18.3
 
 overrides:
+  # TEMPORARY (BER-3792): force the mongo-knex JSON-path pre-release everywhere,
+  # including transitive resolutions (e.g. @tryghost/bookshelf-filter's own nql),
+  # not just the catalog consumers. The members filter runs through bookshelf-filter,
+  # so without this it resolves the stock nql/mongo-knex and loses the feature. Drop
+  # both once TryGhost/NQL#192 ships and the catalog points at the released versions.
+  '@tryghost/mongo-knex': 0.10.2-pr192.2
+  '@tryghost/nql': 0.13.2-pr192.2
   # knex-migrator 5.4.x bundles knex 3.x, but ghost/core is pinned to knex 2.4.2.
   # Ghost's migrations build queries with the 2.4.2 query builder and knex-migrator
   # executes them, so its knex must match Ghost's major or the 3.x runner throws on
