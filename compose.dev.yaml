@@ -40,7 +40,7 @@ services:
       retries: 120
 
   mailpit:
-    image: axllent/mailpit@sha256:956d688cbd13dca36c72d8e94c34d6d1cdf4a005aa6aa4ff6edaaac56c34d8df
+    image: axllent/mailpit@sha256:7f33095f80e901f6ad08028f06ca284aa58fe84942be5496008d041d3b9f4d4d
     container_name: ghost-dev-mailpit
     command: ["--quiet"]
     ports:
@@ -144,7 +144,7 @@ services:
         condition: service_healthy
 
   stripe:
-    image: stripe/stripe-cli:latest@sha256:43dde8fdca05f88a09ef4c7f1fcc3cc113ba988ba967938c41e16f57840342c8
+    image: stripe/stripe-cli:latest@sha256:603126e548d811dcde0bf7748993e59b06b0691606fa18ee9fe6d01deb47361b
     container_name: ghost-dev-stripe
     entrypoint: ["/entrypoint.sh"]
     profiles: ["stripe"]
